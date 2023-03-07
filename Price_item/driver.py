@@ -8,7 +8,7 @@ import undetected_chromedriver as uc
 
 def init_webdriver():
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Режим без интерфейса
+    # chrome_options.add_argument("--headless")  # Режим без интерфейса
     # chrome_options.add_argument('--start-fullscreen')
     chrome_options.add_argument("--window-size=1920x1080")
     chrome_options.add_argument("--disable-notifications")
@@ -49,5 +49,5 @@ def init_webdriver():
     """
 
     # driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-    driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install(), options=chrome_options)
+    driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install(), options=chrome_options, headless=True)
     return driver
