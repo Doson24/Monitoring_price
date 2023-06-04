@@ -9,7 +9,7 @@ def open_file():
     dateparse = lambda x: datetime.strptime(x, '%d-%m-%Y')
     df = pd.read_csv("Data.csv", parse_dates=['date_create'], date_parser=dateparse)
     #Очистка\преобразование данных
-    df.drop_duplicates(ignore_index=True, inplace=True)
+    # df.drop_duplicates(ignore_index=True, inplace=True)
     df.active_price = df.active_price.str.replace('нет в наличии', '0')
     df.prev_price = df.prev_price.str.replace('нет в наличии', '0')
     df.active_price = df.active_price.str.replace(' ', '')
