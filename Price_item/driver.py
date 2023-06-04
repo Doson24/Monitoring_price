@@ -6,7 +6,7 @@ from fake_useragent import UserAgent
 import undetected_chromedriver as uc
 
 
-def init_webdriver():
+def init_webdriver(headless=True):
     chrome_options = Options()
     # chrome_options.add_argument("--headless")  # Режим без интерфейса
     # chrome_options.add_argument('--start-fullscreen')
@@ -49,5 +49,7 @@ def init_webdriver():
     """
 
     # driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-    driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install(), options=chrome_options, headless=True)
+    driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install(),
+                       options=chrome_options,
+                       headless=headless)
     return driver
