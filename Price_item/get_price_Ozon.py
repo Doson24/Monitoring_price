@@ -46,10 +46,11 @@ def get_one_card_data(driver, base_url):
     return Card(name.text, base_url, int(cost_ozon_clen), rewiews, date_create)
 
 
-def save_file(data, filename='data\\Samura.csv'):
+def save_file(data):
+    path = 'C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\data\\Samura.csv'
     df = pd.DataFrame([data])
     print(df[df.columns[-3:]])
-    df.to_csv(filename, mode='a', index=False, header=False)
+    df.to_csv(path, mode='a', index=False, header=False)
     print('>>>Сохранение завершено<<<')
 
 
