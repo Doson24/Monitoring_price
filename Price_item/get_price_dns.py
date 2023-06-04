@@ -4,7 +4,7 @@ from datetime import datetime
 from pprint import pprint
 
 import pandas as pd
-
+from save_DB import save_db
 from SqlLite import add_data
 from driver import init_webdriver
 from selenium.webdriver.common.by import By
@@ -99,15 +99,6 @@ def save_file(data, filename='Data.csv'):
     df_data.to_csv(filename, mode='a', index=False, header=False)
 
 
-def save_db(cards):
-    cards = pd.DataFrame(cards)
-    pprint(cards[['name', 'active_price']])
-    add_data(cards,
-             name_db='online_markets.db',
-             table_name='DNS')
-    print('>>>Запись в БД завершена<<<')
-
-
 def main():
     base_urls = [
         'https://www.dns-shop.ru/catalog/17a8a05316404e77/planshety/',
@@ -118,6 +109,7 @@ def main():
     ]
     selected_city = False
     driver = init_webdriver()
+
     for base_url in base_urls:
         driver.get(base_url)
         driver.set_window_size(1920, 1080)
