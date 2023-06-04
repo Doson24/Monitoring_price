@@ -1,8 +1,11 @@
 from dataclasses import dataclass, asdict
 import time
 from datetime import datetime
+from pprint import pprint
 
 import pandas as pd
+
+from SqlLite import add_data
 from driver import init_webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -51,7 +54,7 @@ def parse_card(driver, city):
         price = item.find_element(By.CLASS_NAME, 'product-buy__price').text
         price = price.replace('&nbsp;₽', '').replace('₽', '').replace(' ', '')
 
-        date = datetime.today().strftime("%d-%m-%Y")
+        date = datetime.today().strftime("%d.%m.%Y")
         if '\n' in price:
             active_price, prev_price = price.split('\n')
         else:
@@ -77,43 +80,61 @@ def parse_catalog(driver, city, base_url):
         url = f'{base_url}?p={page}'
         driver.get(url)
         driver.implicitly_wait(1)
+        try:
+            cards_page = parse_card(driver, city)
+        except Exception as e:
+            cards_page = None
+            print(f"[-] {page} page - Ошибка загрузки")
 
-        cards_page = parse_card(driver, city)
-        data_catalog.extend(cards_page)
+        if cards_page:
+            data_catalog.extend(cards_page)
 
         driver.implicitly_wait(1)
         print(f'[+] {page} page complete, count={len(cards_page)}')
     return data_catalog
 
 
-def save_file(data):
+def save_file(data, filename='Data.csv'):
     df_data = pd.DataFrame(data)
-    df_data.to_csv('Data.csv', mode='a', index=False, header=False)
+    df_data.to_csv(filename, mode='a', index=False, header=False)
+
+
+def save_db(cards):
+    cards = pd.DataFrame(cards)
+    pprint(cards[['name', 'active_price']])
+    add_data(cards,
+             name_db='online_markets.db',
+             table_name='DNS')
+    print('>>>Запись в БД завершена<<<')
 
 
 def main():
-    driver = init_webdriver()
     base_urls = [
-                'https://www.dns-shop.ru/catalog/17a89a3916404e77/operativnaya-pamyat-dimm/',
-                'https://www.dns-shop.ru/catalog/17a9b91b16404e77/operativnaya-pamyat-so-dimm/',
-                'https://www.dns-shop.ru/catalog/17a8a05316404e77/planshety/',
-                'https://www.dns-shop.ru/catalog/17a9ef1716404e77/naushniki-i-garnitury/',
-                'https://www.dns-shop.ru/catalog/17a8a69116404e77/myshi/'
+        'https://www.dns-shop.ru/catalog/17a8a05316404e77/planshety/',
+        'https://www.dns-shop.ru/catalog/17a89a3916404e77/operativnaya-pamyat-dimm/',
+        'https://www.dns-shop.ru/catalog/17a9b91b16404e77/operativnaya-pamyat-so-dimm/',
+        'https://www.dns-shop.ru/catalog/17a9ef1716404e77/naushniki-i-garnitury/',
+        'https://www.dns-shop.ru/catalog/17a8a69116404e77/myshi/'
     ]
+    selected_city = False
+    driver = init_webdriver()
     for base_url in base_urls:
         driver.get(base_url)
         driver.set_window_size(1920, 1080)
         driver.implicitly_wait(1)
-
-        try:
-            city = select_city(driver)
-        except:
-            city = 'Ошибка'
-        print(city, "г выбран")
+        if not selected_city:
+            try:
+                city = select_city(driver)
+            except:
+                city = 'Ошибка'
+            else:
+                selected_city = True
+            print(city, "г выбран")
         # Parse Category
         data_catalog = parse_catalog(driver, city, base_url)
+        data = pd.DataFrame(data_catalog)
+        save_db(data)
 
-        save_file(data_catalog)
     driver.quit()
 
 
