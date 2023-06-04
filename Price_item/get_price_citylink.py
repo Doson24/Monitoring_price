@@ -33,7 +33,7 @@ def select_city(driver):
     driver.find_element(By.CLASS_NAME, 'css-sl5paq.ek3bndn0').click()
 
 
-def parse_card(driver, city):
+def parse_card(driver, city) -> list:
     items = WebDriverWait(driver, 30).until(
         EC.visibility_of_all_elements_located((By.CLASS_NAME, 'e12wdlvo0.app-catalog-1bogmvw.e1loosed0 ')))
     # if len(items) < 48:
@@ -55,7 +55,7 @@ def parse_card(driver, city):
         link = item.find_element(By.XPATH, '//*[@class="app-catalog-1tp0ino e1an64qs0"]/a')
         link = link.get_attribute('href')
         try:
-            WebDriverWait(driver, 5).until(
+            WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0')))
             price = item.find_element(By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0').text
         except:
