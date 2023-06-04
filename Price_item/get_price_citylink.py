@@ -1,10 +1,11 @@
 from dataclasses import dataclass, asdict
 import time
 from datetime import datetime
-
+from pprint import pprint
 import pandas as pd
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
-
+from save_DB import save_db
+from SqlLite import add_data
 from driver import init_webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -34,7 +35,7 @@ def select_city(driver):
 
 
 def parse_card(driver, city) -> list:
-    items = WebDriverWait(driver, 30).until(
+    items = WebDriverWait(driver, 60).until(
         EC.visibility_of_all_elements_located((By.CLASS_NAME, 'e12wdlvo0.app-catalog-1bogmvw.e1loosed0 ')))
     # if len(items) < 48:
     #     driver.refresh()
@@ -50,21 +51,24 @@ def parse_card(driver, city) -> list:
     page_data = []
 
     for item in items:
-        name = item.find_element(By.CLASS_NAME, 'app-catalog-1tp0ino.e1an64qs0')
-        name = name.text
-        link = item.find_element(By.XPATH, '//*[@class="app-catalog-1tp0ino e1an64qs0"]/a')
-        link = link.get_attribute('href')
         try:
-            WebDriverWait(driver, 3).until(
-                EC.presence_of_element_located((By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0')))
-            price = item.find_element(By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0').text
+            name = item.find_element(By.CLASS_NAME, 'app-catalog-1tp0ino.e1an64qs0')
+            name = name.text
+            link = item.find_element(By.XPATH, '//*[@class="app-catalog-1tp0ino e1an64qs0"]/a')
+            link = link.get_attribute('href')
+            try:
+                WebDriverWait(driver, 3).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0')))
+                price = item.find_element(By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0').text
+            except:
+                price = None
+            date = datetime.today().strftime("%d-%m-%Y")
+            active_price, prev_price = price, price
         except:
-            price = None
-        date = datetime.today().strftime("%d-%m-%Y")
-        active_price, prev_price = price, price
-
-        page_data.append(Card(name, link, date, active_price, prev_price, catalog=category, city=city))
-        print(name)
+            print("Ошибка чтения товара")
+        else:
+            page_data.append(Card(name, link, date, active_price, prev_price, catalog=category, city=city))
+        # print(name)
     return page_data
 
 
@@ -99,7 +103,8 @@ def parse_catalog(driver, city, base_url):
             driver.refresh()
             cards_page = parse_card(driver, city)
 
-        data_catalog.extend(cards_page)
+        if cards_page:
+            data_catalog.extend(cards_page)
 
         driver.implicitly_wait(3)
         print(f'[+] {page} page complete, count={len(cards_page)}')
@@ -112,23 +117,32 @@ def save_file(data):
 
 
 def main():
-    driver = init_webdriver()
+    driver = init_webdriver(False)
     base_urls = ["https://www.citilink.ru/catalog/planshety/",
                  "https://www.citilink.ru/catalog/myshi/",
                  'https://www.citilink.ru/catalog/naushniki',
                  'https://www.citilink.ru/catalog/moduli-pamyati/']
+    selected_city = False
 
     for base_url in base_urls:
         driver.get(base_url + '?view_type=list')
         driver.set_window_size(1920, 1080)
         driver.implicitly_wait(3)
 
-        city = select_city(driver)
-
+        if not selected_city:
+            try:
+                select_city(driver)
+            except:
+                city = 'Ошибка'
+            else:
+                selected_city = True
+                city = 'Красноярск'
+                print(city, "г выбран")
         # Parse Category
         data_catalog = parse_catalog(driver, city, base_url)
+        data = pd.DataFrame(data_catalog)
+        save_db(data)
 
-        save_file(data_catalog)
     driver.quit()
 
 
