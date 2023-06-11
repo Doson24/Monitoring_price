@@ -3,7 +3,9 @@ import pandas as pd
 from SqlLite import add_data
 
 
-def save_db(cards, name_db='online_markets.db', table_name='DNS_CityLink'):
+def save_db(cards: pd.DataFrame,
+            name_db='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',
+            table_name='DNS_CityLink'):
     cards = pd.DataFrame(cards)
     pprint(cards[['name', 'active_price']])
     add_data(cards,
