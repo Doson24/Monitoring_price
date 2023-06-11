@@ -36,5 +36,7 @@ def select_All(name_db, table_name):
 
 if __name__ == "__main__":
     path = 'C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\online_markets.db'
-    data = select_All(path, 'AliExpress')
-    print(data)
+    # data = select_All(path, 'AliExpress')
+    # print(data)
+    add_data(pd.DataFrame({'data': [1,2,3]}),
+             path, 'DNS')
