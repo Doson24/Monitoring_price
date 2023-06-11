@@ -34,7 +34,43 @@ def select_city(driver):
     return cities[12].text
 
 
+def urls_monitoring(driver, products):
+    date = datetime.today().strftime("%d-%m-%Y")
+
+    try:
+        city = select_city(driver)
+    except:
+        city = 'Ошибка'
+    print(city, "г выбран")
+
+    cards = []
+    for name, url in products.items():
+        driver.get(url)
+        if driver.current_url != url:
+            driver.get(url)
+        driver.set_window_size(1920, 1080)
+        driver.implicitly_wait(1)
+
+        price = WebDriverWait(driver, 30) \
+            .until(EC.presence_of_element_located((By.CSS_SELECTOR,
+                                                   'div[class=product-buy__price]'))).text
+        # price = int(price[:-2].replace(' ', ''))
+
+        card = Card(name, url, date, city=city, active_price=price, prev_price='', catalog='')
+        cards.append(card)
+        print(f'[+] Данные {name} загружены')
+
+    cards = pd.DataFrame(cards)
+    return cards
+
+
 def parse_card(driver, city):
+    """
+    Сбор данных по карточкам каталога
+    :param driver:
+    :param city:
+    :return:
+    """
     items = driver.find_elements(By.CLASS_NAME, 'catalog-product.ui-button-widget ')
     category = driver.current_url.split('/')[-2]
     if len(items) < 18:
@@ -99,7 +135,7 @@ def save_file(data, filename='Data.csv'):
     df_data.to_csv(filename, mode='a', index=False, header=False)
 
 
-def main():
+def catalog_monitoring():
     base_urls = [
         'https://www.dns-shop.ru/catalog/17a8a05316404e77/planshety/',
         'https://www.dns-shop.ru/catalog/17a89a3916404e77/operativnaya-pamyat-dimm/',
@@ -125,10 +161,11 @@ def main():
         # Parse Category
         data_catalog = parse_catalog(driver, city, base_url)
         data = pd.DataFrame(data_catalog)
-        save_db(data)
+        save_db(data,
+                name_db='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',)
 
     driver.quit()
 
 
 if __name__ == '__main__':
-    main()
+    catalog_monitoring()

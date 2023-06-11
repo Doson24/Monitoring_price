@@ -92,11 +92,11 @@ def parse_catalog(driver, city, base_url):
             try:
                 try:
                     cards_page = parse_card(driver, city)
-                except StaleElementReferenceException as st:
-                    print(st.msg)
+                except Exception as st:
+                    print(st)
                     cards_page = parse_card(driver, city)
-            except StaleElementReferenceException as st:
-                print(st.msg)
+            except Exception as st:
+                print(st)
                 cards_page = parse_card(driver, city)
         except TimeoutException as t:
             print(t.msg)
@@ -117,7 +117,7 @@ def save_file(data):
 
 
 def main():
-    driver = init_webdriver(False)
+    driver = init_webdriver(True)
     base_urls = ["https://www.citilink.ru/catalog/planshety/",
                  "https://www.citilink.ru/catalog/myshi/",
                  'https://www.citilink.ru/catalog/naushniki',
@@ -141,7 +141,8 @@ def main():
         # Parse Category
         data_catalog = parse_catalog(driver, city, base_url)
         data = pd.DataFrame(data_catalog)
-        save_db(data)
+        save_db(data,
+                name_db='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',)
 
     driver.quit()
 
