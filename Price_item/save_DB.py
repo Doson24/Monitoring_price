@@ -1,14 +1,14 @@
 from pprint import pprint
 import pandas as pd
-from SqlLite import add_data
+from SqlLite import SQLite_operations
 
 
 def save_db(cards: pd.DataFrame,
-            name_db='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',
+            path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',
             table_name='DNS_CityLink'):
+
+    db = SQLite_operations(path, table_name)
     cards = pd.DataFrame(cards)
     pprint(cards[['name', 'active_price']])
-    add_data(cards,
-             name_db=name_db,
-             table_name=table_name)
+    db.add_data(cards)
     print('>>>Запись в БД завершена<<<')
