@@ -5,7 +5,7 @@ from pprint import pprint
 
 import pandas as pd
 from save_DB import save_db
-from SqlLite import add_data
+# from SqlLite import add_data
 from driver import init_webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -46,14 +46,16 @@ def urls_monitoring(driver, products):
     cards = []
     for name, url in products.items():
         driver.get(url)
-        if driver.current_url != url:
-            driver.get(url)
+        driver.get(url) if driver.current_url != url else None  # тернарный оператор
         driver.set_window_size(1920, 1080)
         driver.implicitly_wait(1)
 
-        price = WebDriverWait(driver, 30) \
-            .until(EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                   'div[class=product-buy__price]'))).text
+        try:
+            price = WebDriverWait(driver, 60) \
+                .until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR, 'div[class=product-buy__price]'))).text
+        except:
+            price = None
         # price = int(price[:-2].replace(' ', ''))
 
         card = Card(name, url, date, city=city, active_price=price, prev_price='', catalog='')
@@ -114,6 +116,7 @@ def parse_catalog(driver, city, base_url):
     print(number, "страниц найдено")
     for page in range(1, number + 1):
         url = f'{base_url}?p={page}'
+        driver.implicitly_wait(3)
         driver.get(url)
         driver.implicitly_wait(1)
         try:
@@ -135,14 +138,18 @@ def save_file(data, filename='Data.csv'):
     df_data.to_csv(filename, mode='a', index=False, header=False)
 
 
+base_urls = [
+    'https://www.dns-shop.ru/catalog/17a8face16404e77/roboty-pylesosy/',
+    'https://www.dns-shop.ru/catalog/17a8a05316404e77/planshety/',
+    'https://www.dns-shop.ru/catalog/17a89a3916404e77/operativnaya-pamyat-dimm/',
+    'https://www.dns-shop.ru/catalog/17a9b91b16404e77/operativnaya-pamyat-so-dimm/',
+    'https://www.dns-shop.ru/catalog/17a9ef1716404e77/naushniki-i-garnitury/',
+    'https://www.dns-shop.ru/catalog/17a8a69116404e77/myshi/',
+
+]
+
+
 def catalog_monitoring():
-    base_urls = [
-        'https://www.dns-shop.ru/catalog/17a8a05316404e77/planshety/',
-        'https://www.dns-shop.ru/catalog/17a89a3916404e77/operativnaya-pamyat-dimm/',
-        'https://www.dns-shop.ru/catalog/17a9b91b16404e77/operativnaya-pamyat-so-dimm/',
-        'https://www.dns-shop.ru/catalog/17a9ef1716404e77/naushniki-i-garnitury/',
-        'https://www.dns-shop.ru/catalog/17a8a69116404e77/myshi/'
-    ]
     selected_city = False
     driver = init_webdriver()
 
@@ -162,7 +169,7 @@ def catalog_monitoring():
         data_catalog = parse_catalog(driver, city, base_url)
         data = pd.DataFrame(data_catalog)
         save_db(data,
-                name_db='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',)
+                path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db', )
 
     driver.quit()
 
