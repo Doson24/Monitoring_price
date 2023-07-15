@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from SqlLite import add_data
+from SqlLite import SQLite_operations
 
 
 @dataclass
@@ -154,13 +154,12 @@ if __name__ == '__main__':
             card = None
             print(f'[+] Данные {name} не найдены')
 
-
     # Запись в БД
     if cards:
+        ali = SQLite_operations(db='online_markets.db',
+                                table_name='AliExpress')
         cards = pd.DataFrame(cards)
         pprint(cards[['name', 'price']])
-        add_data(cards,
-                 name_db='online_markets.db',
-                 table_name='AliExpress')
+        ali.add_data(cards)
 
     driver.quit()
