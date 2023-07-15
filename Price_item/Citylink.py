@@ -5,7 +5,7 @@ from pprint import pprint
 import pandas as pd
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 from save_DB import save_db
-from SqlLite import add_data
+# from SqlLite import add_data
 from driver import init_webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -54,14 +54,14 @@ def parse_card(driver, city) -> list:
         try:
             name = item.find_element(By.CLASS_NAME, 'app-catalog-1tp0ino.e1an64qs0')
             name = name.text
-            link = item.find_element(By.XPATH, '//*[@class="app-catalog-1tp0ino e1an64qs0"]/a')
+            link = item.find_element(By.XPATH, './/*[@class="app-catalog-1tp0ino e1an64qs0"]/a')
             link = link.get_attribute('href')
             try:
-                WebDriverWait(driver, 3).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0')))
-                price = item.find_element(By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0').text
+                price = WebDriverWait(driver, 30).until(
+                    EC.presence_of_element_located(
+                        (By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0'))).text
             except:
-                price = None
+                price = 'Нет товара'
             date = datetime.today().strftime("%d-%m-%Y")
             active_price, prev_price = price, price
         except:
@@ -83,6 +83,7 @@ def parse_catalog(driver, city, base_url):
     data_catalog = []
     number = max_number_page(driver)
     print(number, "страниц найдено")
+
     for page in range(1, number + 1):
         url = f'{base_url}?p={page}&view_type=list'
         driver.get(url)
@@ -108,6 +109,7 @@ def parse_catalog(driver, city, base_url):
 
         driver.implicitly_wait(3)
         print(f'[+] {page} page complete, count={len(cards_page)}')
+    print(data_catalog[0].catalog)
     return data_catalog
 
 
@@ -116,12 +118,7 @@ def save_file(data):
     df_data.to_csv('Data.csv', mode='a', index=False, header=False)
 
 
-def main():
-    driver = init_webdriver(True)
-    base_urls = ["https://www.citilink.ru/catalog/planshety/",
-                 "https://www.citilink.ru/catalog/myshi/",
-                 'https://www.citilink.ru/catalog/naushniki',
-                 'https://www.citilink.ru/catalog/moduli-pamyati/']
+def get_items_catalog(driver, base_urls, table_name):
     selected_city = False
 
     for base_url in base_urls:
@@ -142,10 +139,21 @@ def main():
         data_catalog = parse_catalog(driver, city, base_url)
         data = pd.DataFrame(data_catalog)
         save_db(data,
-                name_db='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',)
+                table_name=table_name,
+                path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db', )
 
     driver.quit()
 
 
 if __name__ == '__main__':
-    main()
+    driver = init_webdriver(True)
+    base_urls = [
+        "https://www.citilink.ru/catalog/planshety/",
+        "https://www.citilink.ru/catalog/myshi/",
+        'https://www.citilink.ru/catalog/naushniki',
+        'https://www.citilink.ru/catalog/moduli-pamyati/',
+        'https://www.citilink.ru/catalog/roboty-pylesosy/',
+        'https://www.citilink.ru/catalog/smartfony/',
+    ]
+    save_table = 'DNS_CityLink'
+    get_items_catalog(driver, base_urls, save_table)
