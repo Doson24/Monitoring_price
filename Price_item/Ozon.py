@@ -1,16 +1,17 @@
-import csv
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import time
 from datetime import datetime
-
+from logger import init_logger, logger_obj
 import pandas as pd
-from driver import init_webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from save_DB import save_db
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
+
+from driver import init_webdriver
+from save_DB import save_db
+
+log = init_logger('ozon')
 
 
 @dataclass
@@ -24,6 +25,7 @@ class Card:
     date_create: str = datetime.today().strftime("%d-%m-%Y")
 
 
+@logger_obj(log)
 def get_one_card_data(driver, base_url):
     try:
         name = WebDriverWait(driver, 30). \
@@ -48,6 +50,7 @@ def get_one_card_data(driver, base_url):
     return Card(name.text, base_url, int(cost_ozon_clen), rewiews)
 
 
+@logger_obj(log)
 def save_file(data):
     path = 'C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\data\\Samura.csv'
     df = pd.DataFrame([data])
@@ -56,22 +59,23 @@ def save_file(data):
     print('>>>Сохранение завершено<<<')
 
 
+@logger_obj(log)
 def setup_city(driver):
     driver.get('https://www.ozon.ru/')
     button_city = driver.find_elements(By.XPATH, './/button[@tabindex="0"]')[2]
     if button_city.text == 'Укажите адрес доставки':
         button_city.click()
         time.sleep(1)
-        WebDriverWait(driver, 30).until(EC.presence_of_element_located(
-            (By.CLASS_NAME, 'r6d'))).click()
+        WebDriverWait(driver, 120).until(EC.presence_of_element_located(
+            (By.XPATH, './/*[@data-widget="commonAddressBook"]/div/div[2]/div/div/div[2]/div[2]'))).click()
         # driver.find_element(By.CLASS_NAME, 'r6d').click()
         time.sleep(1)
-        WebDriverWait(driver, 30).until(EC.presence_of_element_located(
+        WebDriverWait(driver, 120).until(EC.presence_of_element_located(
             (By.XPATH, './/input[@type="search"]'))).send_keys('Железногорск')
         # driver.find_element(By.XPATH, './/input[@type="search"]').send_keys('Железногорск')
         time.sleep(1)
-        WebDriverWait(driver, 30).until(EC.presence_of_element_located(
-            (By.CLASS_NAME, 'dr0'))).click() # Клик на Железногорск из списка
+        WebDriverWait(driver, 120).until(EC.presence_of_element_located(
+            (By.XPATH, './/*[@data-widget="citySelector"]/div[2]/div/div/div'))).click()  # Клик на Железногорск из списка
         # driver.find_elements(By.CLASS_NAME, 'dr0')[0].click()
     else:
         raise Exception('Изменился путь к изменению Адреса доставки')
