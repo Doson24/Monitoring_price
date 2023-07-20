@@ -1,12 +1,8 @@
-import time
-
 from Citylink import get_items_catalog
 from driver import init_webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
 
 
 def get_url_catalogs(driver):
@@ -32,9 +28,9 @@ def get_url_catalogs(driver):
             name = catalog.text
             catalogs_links.append(link)
             print(name, link)
-        print('_'*60)
-        time.sleep(1)
-
+        print('_' * 60)
+        # time.sleep(1)
+        driver.implicitly_wait(1)
     return catalogs_links
 
 
@@ -42,9 +38,24 @@ def get_link(menu_items):
     return [item_menu.get_attribute('href') for item_menu in menu_items]
 
 
+def save_urls(base_urls):
+    with open('links.txt', 'w') as f:
+        for url in base_urls:
+            f.write(url + "\n")
+
+
+def load_urls():
+    with open('links.txt', 'r') as f:
+        data = f.readlines()
+    return data
+
+
 if __name__ == '__main__':
     driver = init_webdriver(True)
 
-    base_urls = get_url_catalogs(driver)
+    # base_urls = get_url_catalogs(driver)
+    # save_urls(base_urls)
+    base_urls = load_urls()
+
     print('[+] Количество каталогов ', len(base_urls))
-    get_items_catalog(driver, base_urls=base_urls, table_name='All_Citylink')
+    get_items_catalog(driver, base_urls=base_urls[2:], table_name='All_Citylink')
