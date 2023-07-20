@@ -57,7 +57,7 @@ def parse_card(driver, city) -> list:
             link = item.find_element(By.XPATH, './/*[@class="app-catalog-1tp0ino e1an64qs0"]/a')
             link = link.get_attribute('href')
             try:
-                price = WebDriverWait(driver, 30).until(
+                price = WebDriverWait(item, 3).until(
                     EC.presence_of_element_located(
                         (By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0'))).text
             except:
@@ -100,7 +100,7 @@ def parse_catalog(driver, city, base_url):
                 print(st)
                 cards_page = parse_card(driver, city)
         except TimeoutException as t:
-            print(t.msg)
+            print(t.stacktrace)
             driver.refresh()
             cards_page = parse_card(driver, city)
 
@@ -136,7 +136,12 @@ def get_items_catalog(driver, base_urls, table_name):
                 city = 'Красноярск'
                 print(city, "г выбран")
         # Parse Category
-        data_catalog = parse_catalog(driver, city, base_url)
+        try:
+            data_catalog = parse_catalog(driver, city, base_url)
+        except:
+            print(f'[-] Ошибка {base_url} ')
+            continue
+
         data = pd.DataFrame(data_catalog)
         save_db(data,
                 table_name=table_name,
