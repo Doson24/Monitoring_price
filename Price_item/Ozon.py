@@ -7,6 +7,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+import undetected_chromedriver as uc
 
 from driver import init_webdriver
 from save_DB import save_db
@@ -19,7 +20,7 @@ class Card:
     name: str
     link: str
     active_price: int
-    rewiews: int
+    reviews: int
     # sold: int
     # catalog: str
     date_create: str = datetime.today().strftime("%d-%m-%Y")
@@ -75,13 +76,14 @@ def setup_city(driver):
         # driver.find_element(By.XPATH, './/input[@type="search"]').send_keys('Железногорск')
         time.sleep(1)
         WebDriverWait(driver, 120).until(EC.presence_of_element_located(
-            (By.XPATH, './/*[@data-widget="citySelector"]/div[2]/div/div/div'))).click()  # Клик на Железногорск из списка
+            (By.XPATH,
+             './/*[@data-widget="citySelector"]/div[2]/div/div/div'))).click()  # Клик на Железногорск из списка
         # driver.find_elements(By.CLASS_NAME, 'dr0')[0].click()
     else:
         raise Exception('Изменился путь к изменению Адреса доставки')
 
 
-def urls_monitoring(driver) -> pd.DataFrame:
+def monitoring_urls(driver) -> pd.DataFrame:
     urls = [
         'https://www.ozon.ru/product/polnoratsionnyy-suhoy-korm-s-govyadinoy-black-angus-dlya-domashnih-koshek-starshe-1-goda-1-2-kg-431298791/?oos_search=false',
         'https://www.ozon.ru/product/suhoy-korm-dlya-koshek-purina-one-adult-s-govyadinoy-s-tselnymi-zlakami-750-g-137590849',
@@ -110,10 +112,76 @@ def urls_monitoring(driver) -> pd.DataFrame:
     return cards
 
 
+def get_category_links(driver: uc.Chrome):
+    url = 'https://www.ozon.ru/'
+    driver.get(url)
+    driver.implicitly_wait(30)
+    driver.find_element(By.XPATH, './/*[@data-widget="catalogMenu"]/div/button/span').click()
+    categories = driver.find_elements(By.XPATH, './/*[@data-widget="catalogMenu"]/div[2]/div/div/ul/li')
+    links = []
+    for category in categories:
+        tag_a = category.find_element(By.TAG_NAME, 'a')
+        link = tag_a.get_attribute('href')
+        name = tag_a.text
+        links.append((name, link))
+    return links
+
+
+def top_products(driver: uc.Chrome):
+    links = get_category_links(driver)
+    category = {}
+    for name, link in links:
+        try:
+            driver.get(link)
+            driver.implicitly_wait(30)
+
+            driver.find_element(By.TAG_NAME, 'aside')
+
+        except:
+            continue
+        # name = driver.find_element(By.XPATH, './/*[@data-widget="resultsHeader"]/div/h1').text
+        sub_categories = driver.find_elements(By.XPATH,
+                                              './/aside/div/div/div/div[@style="margin-left:16px;"]/a')
+
+        name_link = [(sub.text, sub.get_attribute('href')) for sub in sub_categories]
+        category[name] = name_link
+        print(name, name_link)
+
+        get_items_catalog(name_link, driver)
+
+
+    return category
+
+
+def get_items_catalog(name_link, driver: uc.Chrome):
+    for el in name_link:
+        name, link = el
+        driver.get(link)
+        cards = driver.find_elements(By.XPATH, '//div[contains(@class, "widget-search-result-container")]/div/div')
+        data = parse_card(cards)
+
+
+def parse_card(cards):
+    data = []
+    for card in cards:
+        try:
+            name = card.find_element(By.XPATH, './/div[2]/div/a/div').text
+        except:
+            continue
+        link = card.find_element(By.XPATH, './/div/a').get_attribute('href')
+        active_price = card.find_element(By.XPATH, './/div[3]/div/div/span').text\
+            .encode('ascii', 'ignore').decode("utf-8")
+        reviews = card.find_element(By.XPATH, './/div[2]/div/div[2]/div/span[2]').text
+
+        data.append(Card(name, link, active_price, reviews))
+    data = pd.DataFrame(data)
+    data['reviews']
+    return data
+
 if __name__ == '__main__':
     driver = init_webdriver(True)
-
-    data = urls_monitoring(driver)
+    top_products(driver)
+    data = monitoring_urls(driver)
     save_db(data,
             path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',
             table_name='Ozon')
