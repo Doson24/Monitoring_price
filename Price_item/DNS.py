@@ -35,7 +35,7 @@ def select_city(driver):
 
 
 def urls_monitoring(driver, products):
-    date = datetime.today().strftime("%d-%m-%Y")
+    date = datetime.today().strftime("%d.%m.%Y")
 
     try:
         city = select_city(driver)
