@@ -33,8 +33,9 @@ def get_one_card_data(driver, base_url):
             until(EC.presence_of_element_located((
             (By.XPATH, ".//div[@data-widget='webProductHeading']"))))
     except TimeoutException:
-        sold_out = driver.find_element(By.CLASS_NAME, 'kv8').text
-        name = driver.find_element(By.CLASS_NAME, 'k5v')
+        sold_out = driver.find_element(By.XPATH, './/*[@data-widget="webOutOfStock"]/h2').text
+        name = driver.find_element(By.XPATH,
+                                   './/*[@data-widget="webOutOfStock"]/div/div/div/div/div[2]/p')
         return Card(name.text, base_url, sold_out, sold_out)
     # name = driver.find_element(By.XPATH, ".//*[@data-widget='webProductHeading']").text
 
@@ -84,19 +85,9 @@ def setup_city(driver):
 
 
 def monitoring_urls(driver) -> pd.DataFrame:
-    urls = [
-        'https://www.ozon.ru/product/polnoratsionnyy-suhoy-korm-s-govyadinoy-black-angus-dlya-domashnih-koshek-starshe-1-goda-1-2-kg-431298791/?oos_search=false',
-        'https://www.ozon.ru/product/suhoy-korm-dlya-koshek-purina-one-adult-s-govyadinoy-s-tselnymi-zlakami-750-g-137590849',
-        'https://www.ozon.ru/product/suhoy-korm-dlya-koshek-purina-one-s-vysokim-soderzhaniem-kuritsy-i-tselnymi-zlakami-9-75-kg-689850724',
-        'https://www.ozon.ru/product/shef-nozh-dlya-narezki-myasa-ryby-ovoshchey-i-fruktov-kuhonnyy-nozh-povarskoy-nozh-dlya-kuhni-samura-163145300',
-        'https://www.ozon.ru/product/generator-benzinovyy-portativnyy-lavada-g4000-elektrogenerator-benzoelektrostantsiya-3-3-3-5-819332872/?sh=1RJHcmpPdA',
-        'https://www.ozon.ru/product/nabor-instrumentov-dlya-chistki-ushey-7-predmetov-instrument-dlya-chistki-ushey-526254914/?sh=1RJHcmMATA,'
-        'https://www.ozon.ru/product/carte-noire-original-kofe-rastvorimyy-95-g-33871154/?sh=1RJHcmfaNg',
-        'https://www.ozon.ru/product/domkrat-avtomobilnyy-podkatnoy-2t-v-keyse-domkrat-gidravlicheskiy-belak-bak-00531-150200129/?sh=1RJHcixAgg',
-        'https://www.ozon.ru/product/zashchitnoe-steklo-prozrachnoe-dlya-ipad-7-8-9-10-2-2019-2020-2021-9h-0-3-mm-only-case-273831573/?sh=1RJHcvJyiA',
-        'https://www.ozon.ru/product/nozh-santoku-dlya-narezki-myasa-ryby-ovoshchey-i-fruktov-yaponskiy-kuhonnyy-nozh-povarskoy-shef-163145302/?from_sku=163145300&oos_search=false&sh=1RJHcrl_Og',
+    with open(r'C:\Users\user\Desktop\Projects\Price_monitoring\Price_item\bat\products.txt', 'r') as f:
+        urls = f.readlines()
 
-    ]
     setup_city(driver)
 
     cards = []
@@ -178,9 +169,10 @@ def parse_card(cards):
     data['reviews']
     return data
 
+
 if __name__ == '__main__':
     driver = init_webdriver(True)
-    top_products(driver)
+    # top_products(driver)
     data = monitoring_urls(driver)
     save_db(data,
             path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',
