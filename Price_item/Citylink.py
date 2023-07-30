@@ -102,8 +102,8 @@ def parse_catalog(driver, city, base_url):
         except TimeoutException as t:
             print(t.stacktrace)
             driver.refresh()
+            print('[?] Refresh driver')
             cards_page = parse_card(driver, city)
-
         if cards_page:
             data_catalog.extend(cards_page)
 
