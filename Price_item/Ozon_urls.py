@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from logger import init_logger, logger_obj
 import pandas as pd
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -23,6 +23,17 @@ class Card:
     reviews: int
     # sold: int
     # catalog: str
+    date_create: str = datetime.today().strftime("%d-%m-%Y")\
+
+
+@dataclass
+class Card_top:
+    name: str
+    link: str
+    active_price: int
+    reviews: int
+    # sold: int
+    catalog: str
     date_create: str = datetime.today().strftime("%d-%m-%Y")
 
 
@@ -62,14 +73,21 @@ def save_file(data):
 
 
 @logger_obj(log)
-def setup_city(driver):
+def setup_city(driver: uc.Chrome):
     driver.get('https://www.ozon.ru/')
+    # button_city = WebDriverWait(driver, 30).until(
+    #     EC.presence_of_all_elements_located(
+    #         (By.XPATH, './/button[@tabindex="0"]')))[2]
     button_city = driver.find_elements(By.XPATH, './/button[@tabindex="0"]')[2]
     if button_city.text == 'Укажите адрес доставки':
+        time.sleep(3)
         button_city.click()
-        time.sleep(1)
-        WebDriverWait(driver, 120).until(EC.presence_of_element_located(
-            (By.XPATH, './/*[@data-widget="commonAddressBook"]/div/div[2]/div/div/div[2]/div[2]'))).click()
+        driver.implicitly_wait(3)
+        try:
+            WebDriverWait(driver, 120).until(EC.presence_of_element_located(
+                (By.XPATH, './/*[@data-widget="commonAddressBook"]/div/div[2]/div/div/div[2]/div[2]'))).click()
+        except TimeoutException:
+            raise 'Ошибка нажатия на кнопку "Укажите адрес доставки"'
         # driver.find_element(By.CLASS_NAME, 'r6d').click()
         time.sleep(1)
         WebDriverWait(driver, 120).until(EC.presence_of_element_located(
@@ -82,6 +100,7 @@ def setup_city(driver):
         # driver.find_elements(By.CLASS_NAME, 'dr0')[0].click()
     else:
         raise Exception('Изменился путь к изменению Адреса доставки')
+    print('[+] Город доставки выбран')
 
 
 def monitoring_urls(driver) -> pd.DataFrame:
@@ -98,6 +117,7 @@ def monitoring_urls(driver) -> pd.DataFrame:
 
         card = get_one_card_data(driver, url)
         cards.append(card)
+        print(card)
         # save_file(asdict(data))
     cards = pd.DataFrame(cards)
     return cards
@@ -121,6 +141,7 @@ def get_category_links(driver: uc.Chrome):
 def top_products(driver: uc.Chrome):
     links = get_category_links(driver)
     category = {}
+    data = []
     for name, link in links:
         try:
             driver.get(link)
@@ -129,53 +150,80 @@ def top_products(driver: uc.Chrome):
             driver.find_element(By.TAG_NAME, 'aside')
 
         except:
+            print(f'[-] Error open Category {name} - {link}')
             continue
         # name = driver.find_element(By.XPATH, './/*[@data-widget="resultsHeader"]/div/h1').text
         sub_categories = driver.find_elements(By.XPATH,
                                               './/aside/div/div/div/div[@style="margin-left:16px;"]/a')
 
-        name_link = [(sub.text, sub.get_attribute('href')) for sub in sub_categories]
-        category[name] = name_link
-        print(name, name_link)
+        names_links = [(sub.text, sub.get_attribute('href')) for sub in sub_categories]
+        category[name] = names_links
 
-        get_items_catalog(name_link, driver)
+        names_links = get_subsub_categories_links(names_links, driver)
+
+        data.extend(get_items_catalog(names_links, driver))
+
+        print(name, names_links)
+
+    data = pd.DataFrame(data)
+    return data
 
 
-    return category
-
-
-def get_items_catalog(name_link, driver: uc.Chrome):
-    for el in name_link:
+def get_subsub_categories_links(names_links: list, driver: uc.Chrome):
+    data = []
+    for el in names_links:
         name, link = el
         driver.get(link)
-        cards = driver.find_elements(By.XPATH, '//div[contains(@class, "widget-search-result-container")]/div/div')
-        data = parse_card(cards)
+        hrefs = driver.find_elements(By.XPATH, '//div[@style="margin-left:16px;"]/a')
+        links = [href.get_attribute('href') for href in hrefs]
+        data.append((name, links))
+    print('[+]Func get_subsub_categories_links')
+    return data
 
 
-def parse_card(cards):
+def get_items_catalog(names_links: list, driver: uc.Chrome):
+    data = []
+    for el in names_links:
+        name, links = el
+        for link in links:
+            driver.get(link+'?brandcertified=t')
+            cards = driver.find_elements(By.XPATH, '//div[contains(@class, "widget-search-result-container")]/div/div')
+            data.extend(parse_card(cards, name))
+        print(f'[+] SubCategory {name} parse is complete')
+    return data
+
+
+def parse_card(cards: list, category):
     data = []
     for card in cards:
         try:
             name = card.find_element(By.XPATH, './/div[2]/div/a/div').text
         except:
+            print(f'[-] Cannot find name')
             continue
         link = card.find_element(By.XPATH, './/div/a').get_attribute('href')
-        active_price = card.find_element(By.XPATH, './/div[3]/div/div/span').text\
+        active_price = card.find_element(By.XPATH, './/div[3]/div/div/span').text \
             .encode('ascii', 'ignore').decode("utf-8")
-        reviews = card.find_element(By.XPATH, './/div[2]/div/div[2]/div/span[2]').text
+        try:
+            reviews = card.find_element(By.XPATH, './/div[2]/div/div[2]/div/span[2]').text
+        except NoSuchElementException:
+            print(f'[-] Cannot find reviews {name}')
+            continue
+        card_top = Card_top(name, link, active_price, reviews, category)
+        data.append(card_top)
 
-        data.append(Card(name, link, active_price, reviews))
-    data = pd.DataFrame(data)
-    data['reviews']
+    # data = pd.DataFrame(data)
+    # data['reviews']
     return data
 
 
 if __name__ == '__main__':
+    start = datetime.now()
     driver = init_webdriver(True)
-    # top_products(driver)
+    # data = top_products(driver)
     data = monitoring_urls(driver)
     save_db(data,
             path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',
             table_name='Ozon')
-
+    print('Время выполнения: ', datetime.now() - start)
     driver.quit()
