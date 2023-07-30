@@ -1,8 +1,9 @@
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
-# !pip isntall webdriver-manager
+# !pip install webdriver-manager
 from webdriver_manager.chrome import ChromeDriverManager
 from fake_useragent import UserAgent
+# pip install undetected-chromedriver
 import undetected_chromedriver as uc
 
 
@@ -42,14 +43,15 @@ def init_webdriver(headless=True):
 
     """
     Fake user-agent
-    
+  
+
     ua = UserAgent()
     ua_random = ua.random
     chrome_options.add_argument(f"user-agent={ua_random}")
     """
-
     # driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-    driver = uc.Chrome(driver_executable_path=ChromeDriverManager().install(),
+    driver = uc.Chrome(driver_executable_path=r'C:\install\chromedriver.exe',
+                       # driver_executable_path=ChromeDriverManager().install(),
                        options=chrome_options,
                        headless=headless)
     return driver
