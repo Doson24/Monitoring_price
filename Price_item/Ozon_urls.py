@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 import undetected_chromedriver as uc
-
+from selenium.webdriver.common.keys import Keys
 from driver import init_webdriver
 from save_DB import save_db
 
@@ -23,8 +23,7 @@ class Card:
     reviews: int
     # sold: int
     # catalog: str
-    date_create: str = datetime.today().strftime("%d-%m-%Y")\
-
+    date_create: str = datetime.today().strftime("%d-%m-%Y") \
 
 @dataclass
 class Card_top:
@@ -35,6 +34,10 @@ class Card_top:
     # sold: int
     catalog: str
     date_create: str = datetime.today().strftime("%d-%m-%Y")
+
+    def __str__(self):
+        return f'{self.name}, {self.link}'
+
 
 
 @logger_obj(log)
@@ -131,7 +134,12 @@ def get_category_links(driver: uc.Chrome):
     categories = driver.find_elements(By.XPATH, './/*[@data-widget="catalogMenu"]/div[2]/div/div/ul/li')
     links = []
     for category in categories:
-        tag_a = category.find_element(By.TAG_NAME, 'a')
+        try:
+            tag_a = WebDriverWait(category, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'a')))
+        except TimeoutException:
+            driver.refresh()
+            tag_a = WebDriverWait(category, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'a')))
+        # tag_a = category.find_element(By.TAG_NAME, 'a')
         link = tag_a.get_attribute('href')
         name = tag_a.text
         links.append((name, link))
@@ -139,16 +147,16 @@ def get_category_links(driver: uc.Chrome):
 
 
 def top_products(driver: uc.Chrome):
+    # setup_city(driver)
     links = get_category_links(driver)
     category = {}
     data = []
-    for name, link in links:
+    for name, link in links[:1]:
         try:
             driver.get(link)
             driver.implicitly_wait(30)
 
             driver.find_element(By.TAG_NAME, 'aside')
-
         except:
             print(f'[-] Error open Category {name} - {link}')
             continue
@@ -186,35 +194,61 @@ def get_items_catalog(names_links: list, driver: uc.Chrome):
     for el in names_links:
         name, links = el
         for link in links:
-            driver.get(link+'?brandcertified=t')
-            cards = driver.find_elements(By.XPATH, '//div[contains(@class, "widget-search-result-container")]/div/div')
-            data.extend(parse_card(cards, name))
+            driver.get(link + '?brandcertified=t')
+            cards = search_cards(driver)
+            # cards = driver.find_elements(By.XPATH, '//div[contains(@class, "widget-search-result-container")]/div/div')
+            data.extend(parse_card(cards, name, driver))
         print(f'[+] SubCategory {name} parse is complete')
     return data
 
 
-def parse_card(cards: list, category):
+def search_cards(driver):
+    cards = WebDriverWait(driver, 3).until(
+        EC.visibility_of_all_elements_located((
+            By.XPATH, '//div[contains(@class, "widget-search-result-container")]/div/div')))
+    return cards
+
+
+def parse_card(cards: list, category, driver):
     data = []
-    for card in cards:
+    for i, card in enumerate(cards):
+        # card.send_keys(Keys.PAGE_DOWN)
         try:
-            name = card.find_element(By.XPATH, './/div[2]/div/a/div').text
+            name = search_name(card)
         except:
-            print(f'[-] Cannot find name')
-            continue
+            cards = search_cards(driver)
+            card = cards[i]
+            try:
+                name = search_name(card)
+            except:
+                driver.refresh()
+                cards = search_cards(driver)
+                print(f'[-] Cannot find name')
+                continue
         link = card.find_element(By.XPATH, './/div/a').get_attribute('href')
         active_price = card.find_element(By.XPATH, './/div[3]/div/div/span').text \
             .encode('ascii', 'ignore').decode("utf-8")
         try:
-            reviews = card.find_element(By.XPATH, './/div[2]/div/div[2]/div/span[2]').text
-        except NoSuchElementException:
-            print(f'[-] Cannot find reviews {name}')
+            reviews = WebDriverWait(card, 0.5).until(
+                EC.presence_of_element_located((By.XPATH, './/*[contains(@class, " tsBodyMBold")]/span[2]')))
+            # reviews = card.find_element(By.XPATH, './/div[2]/div/div[2]/div/span[2]').text
+        except TimeoutException:
+            print(f'[-] Cannot find reviews {name}, {link}')
             continue
         card_top = Card_top(name, link, active_price, reviews, category)
+        print(i, card_top)
         data.append(card_top)
 
     # data = pd.DataFrame(data)
     # data['reviews']
     return data
+
+
+def search_name(card):
+    name = WebDriverWait(card, 0.5).until(
+        EC.presence_of_element_located(
+            (By.XPATH, './/a[contains(@class, "tile-hover-target ")]'))).text
+    return name
 
 
 if __name__ == '__main__':
