@@ -57,13 +57,17 @@ def parse_card(driver, city) -> list:
             link = item.find_element(By.XPATH, './/*[@class="app-catalog-1tp0ino e1an64qs0"]/a')
             link = link.get_attribute('href')
             try:
-                price = WebDriverWait(item, 3).until(
+                prev_price = WebDriverWait(item, 3).until(
                     EC.presence_of_element_located(
                         (By.CLASS_NAME, 'e1j9birj0.e106ikdt0.app-catalog-j8h82j.e1gjr6xo0'))).text
             except:
-                price = 'Нет товара'
-            date = datetime.today().strftime("%d-%m-%Y")
-            active_price, prev_price = price, price
+                prev_price = 'Нет товара'
+            date = datetime.today().strftime("%d.%m.%Y")
+            try:
+                active_price = item.find_element(By.XPATH,
+                                                 './/span[contains(@class, "app-catalog") and @data-meta-is-total="notTotal"]').text
+            except:
+                active_price = 'Нет товара'
         except:
             print("Ошибка чтения товара")
         else:
@@ -134,7 +138,7 @@ def get_items_catalog(driver, base_urls, table_name):
             else:
                 selected_city = True
                 city = 'Красноярск'
-                print(city, "г выбран")
+                print(city, " выбран")
         # Parse Category
         try:
             data_catalog = parse_catalog(driver, city, base_url)
@@ -145,7 +149,7 @@ def get_items_catalog(driver, base_urls, table_name):
         data = pd.DataFrame(data_catalog)
         save_db(data,
                 table_name=table_name,
-                path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db', )
+                path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db')
 
     driver.quit()
 
@@ -159,6 +163,7 @@ if __name__ == '__main__':
         'https://www.citilink.ru/catalog/moduli-pamyati/',
         'https://www.citilink.ru/catalog/roboty-pylesosy/',
         'https://www.citilink.ru/catalog/smartfony/',
+        'https://www.citilink.ru/catalog/televizory/',
     ]
     save_table = 'DNS_CityLink'
     get_items_catalog(driver, base_urls, save_table)
