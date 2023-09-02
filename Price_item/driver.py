@@ -2,14 +2,16 @@ from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 # !pip install webdriver-manager
 from webdriver_manager.chrome import ChromeDriverManager
-from fake_useragent import UserAgent
+# from fake_useragent import UserAgent
 # pip install undetected-chromedriver
 import undetected_chromedriver as uc
+from selenium.webdriver.chrome.service import Service as ChromeService
 
 
 def init_webdriver(headless=True):
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")  # Режим без интерфейса
+    if headless:
+        chrome_options.add_argument("--headless")  # Режим без интерфейса
     # chrome_options.add_argument('--start-fullscreen')
     chrome_options.add_argument("--window-size=1920x1080")
     chrome_options.add_argument("--disable-notifications")
@@ -26,11 +28,10 @@ def init_webdriver(headless=True):
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--output=/dev/null")
-    
 
     """
     Загрузка файлов в указаную директорию
-    
+
     chrome_options.add_argument("download.default_directory=C:/install") # Возможно не работает
     chrome_options.add_experimental_option("prefs", {
         "download.default_directory": "C:\\Users\\user\\Desktop\\Projects\\Restate.ru\\data",
@@ -39,19 +40,21 @@ def init_webdriver(headless=True):
         "safebrowsing_for_trusted_sources_enabled": False,
         "safebrowsing.enabled": False
     })"""
-    #в режиме headless без user-agent не загружает страницу
+    # в режиме headless без user-agent не загружает страницу
 
     """
     Fake user-agent
-  
 
     ua = UserAgent()
     ua_random = ua.random
     chrome_options.add_argument(f"user-agent={ua_random}")
     """
-    # driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-    driver = uc.Chrome(driver_executable_path=r'C:\install\chromedriver.exe',
-                       # driver_executable_path=ChromeDriverManager().install(),
-                       options=chrome_options,
-                       headless=headless)
+
+    driver = webdriver.Chrome(
+        executable_path=r'C:\install\chromedriver.exe',
+        # browser_executable_path=r'C:\install\chrome-win64\chrome.exe',
+        # executable_path=ChromeDriverManager(
+        #        latest_release_url='https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/116.0.5845.96/win64/chromedriver-win64.zip').install(),
+        options=chrome_options,
+    )
     return driver
