@@ -84,13 +84,18 @@ def save_file(data):
 @logger_obj(log)
 def setup_city(driver: uc.Chrome, delivery_city='Железногорск'):
     driver.get('https://www.ozon.ru/')
-    driver.implicitly_wait(3)
-    button_city = WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located(
-            (By.XPATH, './/div[@data-content]/div[3]/div/button[@tabindex="0"]')))
+    driver.implicitly_wait(5)
+    try:
+        button_city = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.XPATH, './/div[@data-content]/div[3]/div/button[@tabindex="0"]')))
+    except:
+        button_city = driver.find_elements(By.XPATH,
+            '//*[@data-widget="addressBookBarWeb"]//*[@tabindex="0" and @type="button"]')[1]
+
     # button_city = button_city[2]
     # button_city = driver.find_elements(By.XPATH, './/button[@tabindex="0"]')[2]
-    if button_city.text == 'Укажите адрес доставки':
+    if button_city.text == 'Укажите адрес доставки' or button_city.text == 'Уточнить адрес':
         time.sleep(3)
         button_city.click()
         # driver.implicitly_wait(3)
@@ -162,7 +167,7 @@ def top_products(driver: uc.Chrome):
     links_category = get_category_links(driver)
     category = {}
     # data = []
-    for name, link in links_category[1:]:
+    for name, link in links_category[:]:
         try:
             driver.get(link)
             print('-' * 5, name, link)
@@ -212,7 +217,7 @@ def get_items_catalog(names_links: list, driver: uc.Chrome) -> list:
         name, links = el
         for link in links:
             driver.get(link + '?brandcertified=t')
-            # view = detect_view_catalog(driver)
+            scroll_page(driver)
             try:
                 cards = search_cards(driver)
             except TimeoutException:
@@ -250,6 +255,7 @@ def parse_cards(cards: list, category, driver, wait=0.3) -> list[Card_top]:
                 name = search_name(card)
             except:
                 driver.refresh()
+                scroll_page(driver)
                 cards = search_cards(driver)
                 print(f'[-] Cannot find name')
                 continue
@@ -262,7 +268,7 @@ def parse_cards(cards: list, category, driver, wait=0.3) -> list[Card_top]:
                 .encode('ascii', 'ignore').decode("utf-8")
             if active_price == '':
                 raise NoSuchElementException
-        except TimeoutException:
+        except (TimeoutException, NoSuchElementException):
             try:
                 tag_view = 1
                 active_price = WebDriverWait(card, 1).until(
@@ -290,6 +296,10 @@ def parse_cards(cards: list, category, driver, wait=0.3) -> list[Card_top]:
     return data
 
 
+def scroll_page(driver):
+    driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
+
+
 # //div[@class="c7" and @data-widget="column"]
 def break_process(delay):
     time.sleep(delay)
@@ -298,6 +308,7 @@ def break_process(delay):
 
 def search_name(card):
     # driver.implicitly_wait(1)
+    # time.sleep(1)
     name = WebDriverWait(card, 0.5).until(
         EC.presence_of_element_located(
             (By.XPATH, './/a[contains(@class, "tile-hover-target ")]'))).text
@@ -306,7 +317,7 @@ def search_name(card):
 
 if __name__ == '__main__':
     start = datetime.now()
-    driver = init_webdriver(True)
+    driver = init_webdriver(False)
     data = monitoring_urls(driver)
     save_db(data,
             path='C:\\Users\\user\\Desktop\\Projects\\Price_monitoring\\Price_item\\bat\\online_markets.db',
