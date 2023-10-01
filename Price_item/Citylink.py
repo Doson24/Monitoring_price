@@ -155,15 +155,18 @@ def get_items_catalog(driver, base_urls, table_name):
 
 
 if __name__ == '__main__':
+    start = time.time()
     driver = init_webdriver(True)
     base_urls = [
         "https://www.citilink.ru/catalog/planshety/",
-        "https://www.citilink.ru/catalog/myshi/",
-        'https://www.citilink.ru/catalog/naushniki',
-        'https://www.citilink.ru/catalog/moduli-pamyati/',
-        'https://www.citilink.ru/catalog/roboty-pylesosy/',
-        'https://www.citilink.ru/catalog/smartfony/',
-        'https://www.citilink.ru/catalog/televizory/',
+        # "https://www.citilink.ru/catalog/myshi/",
+        # 'https://www.citilink.ru/catalog/naushniki/',
+        # 'https://www.citilink.ru/catalog/moduli-pamyati/',
+        # 'https://www.citilink.ru/catalog/roboty-pylesosy/',
+        # 'https://www.citilink.ru/catalog/smartfony/',
+        # 'https://www.citilink.ru/catalog/televizory/',
     ]
     save_table = 'DNS_CityLink'
     get_items_catalog(driver, base_urls, save_table)
+    end = time.time()
+    print('Elapsed time: ', end - start)

@@ -52,8 +52,9 @@ def init_webdriver(headless=True):
     chrome_options.add_argument(f"user-agent={ua_random}")
     """
 
-    driver = uc.Chrome(driver_executable_path=get_chromedriver_fp(),
-                       # executable_path=r'C:\install\chromedriver.exe',
+    driver = uc.Chrome(
+                       # driver_executable_path=get_chromedriver_fp(),
+                       driver_executable_path=r'C:\install\chromedriver.exe',
                        # browser_executable_path=r'C:\install\chrome-win64\chrome.exe',
                        # executable_path=ChromeDriverManager(
                        #        latest_release_url='https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/116.0.5845.96/win64/chromedriver-win64.zip').install(),
